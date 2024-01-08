@@ -19,4 +19,6 @@ This is a maintained log for solving common errors while installing & running th
 * mkdir build
 * cd build
 * cmake -DLINALG=MKL -D CMAKE_INSTALL_PREFIX=/path/to/installation/ ../
-* cp pymolcas bin/ 
+* cp pymolcas bin/
+* set the path of MOLCAS upto build directory.
+*  
