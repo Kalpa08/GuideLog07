@@ -23,6 +23,4 @@ cmake -DLINALG=MKL -D CMAKE_INSTALL_PREFIX=/path/to/installation/ ../
 cp pymolcas bin/
  ```
 * set the path of MOLCAS upto build directory.
-`` how this will work
- lets see ``
   
