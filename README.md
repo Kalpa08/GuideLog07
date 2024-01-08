@@ -3,6 +3,7 @@ This is a maintained log for solving common errors while installing & running th
 
 ## Solution for OpenMolcas instllation in paramshivay iit bhu
 
+ ``` Open the termina and type in the commands
 * module load ohpc
 * module load intel/2020.2.254
 * module load conda
@@ -14,11 +15,12 @@ This is a maintained log for solving common errors while installing & running th
 * export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/$USER/slurm-library:/usr/lib64
 * export FC=ifort
 
-* first ` git clone https://gitlab.com/Molcas/OpenMolcas.git `
-* second  ` cd OpenMolcas `
-* third ` mkdir build `
-* fourth  ` cd build `
-* fifth` cmake -DLINALG=MKL -D CMAKE_INSTALL_PREFIX=/path/to/installation/ ../ `
-* sixth ` cp pymolcas bin/`
+* git clone https://gitlab.com/Molcas/OpenMolcas.git 
+* cd OpenMolcas 
+* mkdir build
+* cd build
+* cmake -DLINALG=MKL -D CMAKE_INSTALL_PREFIX=/path/to/installation/ ../ `
+* cp pymolcas bin/
+* ```
 * set the path of MOLCAS upto build directory.
   
