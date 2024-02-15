@@ -48,8 +48,8 @@ export FC=ifort
 ```
 * Download the software from https://github.com/sharc-md/sharc/releases/ and follow the following steps
   * First go to source directory and open Makefile
-  * then keep ```USE_PYSHARC := false, USE_COMPILER := gnu, USE_LIBS := mkl,  ANACONDA := /home/apps/bio_tools/conda ``` and run run ```make install``` in source/ as shown below.
-  ```
+  * keep ```USE_PYSHARC := false, USE_COMPILER := gnu, USE_LIBS := mkl,  ANACONDA := /home/apps/bio_tools/conda ``` and run run ```make install``` in source/ as shown below.
+```
   USE_PYSHARC := false
 
    #intel, gnu
