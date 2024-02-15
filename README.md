@@ -46,7 +46,23 @@ module load gcc/10.2.0
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/$USER/slurm-library:/usr/lib64
 export FC=ifort
 ```
-Download the software from https://github.com/sharc-md/sharc/releases/ and follow the following steps
+* Download the software from https://github.com/sharc-md/sharc/releases/ and follow the following steps
+  ```
+  USE_PYSHARC := true
+
+   #intel, gnu
+   USE_COMPILER := gnu
+
+   #mkl,gnu
+   USE_LIBS := mkl
+
+   #Static libraries
+   COMP_STATIC := false
+
+   #needed for PYSHARC
+   ANACONDA := /home/apps/bio_tools/conda
+  # =======================================
+```
 
 
   
