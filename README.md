@@ -47,8 +47,10 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/$USER/slurm-library:/usr/lib64
 export FC=ifort
 ```
 * Download the software from https://github.com/sharc-md/sharc/releases/ and follow the following steps
+* * First go to source directory and open Makefile
+  * 
   ```
-  USE_PYSHARC := true
+  USE_PYSHARC := false
 
    #intel, gnu
    USE_COMPILER := gnu
