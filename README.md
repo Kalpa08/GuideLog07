@@ -19,8 +19,14 @@ git clone https://gitlab.com/Molcas/OpenMolcas.git
 cd OpenMolcas 
 mkdir build
 cd build
-cmake -DLINALG=MKL -D HDF5=OFF -D CMAKE_INSTALL_PREFIX=/path/to/installation/ ../ 
+cmake -DLINALG=MKL -D HDF5=OFF -D CMAKE_INSTALL_PREFIX=/path/to/installation/ ../
+make
+make install
+cd /path/to/installation/
 cp pymolcas bin/
+vi ~/.bashrc
+export MOLCAS=/path/to/installation/
+source ~/.bashrc
  ```
 * set the path of MOLCAS upto build directory.
   
