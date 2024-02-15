@@ -24,9 +24,12 @@ make
 make install
 cd /path/to/installation/
 cp pymolcas bin/
+```
+* set the path of MOLCAS upto build directory.
+```
 vi ~/.bashrc
 export MOLCAS=/path/to/installation/
 source ~/.bashrc
  ```
-* set the path of MOLCAS upto build directory.
+
   
