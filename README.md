@@ -64,9 +64,9 @@ export FC=ifort
    #needed for PYSHARC
    ANACONDA := /home/apps/bio_tools/conda
   # =======================================```
- ***  After this run ``` make clean``` in source, set USE_PYSHARC to true and run ```make install``` in pysharc/.
- *** go to bin and check whether all the binaries and python scripts are present or not
- *** set the path to bin in your .bashrc and source it to use.
+ * After this run ``` make clean``` in source, set USE_PYSHARC to true and run ```make install``` in pysharc/.
+ * go to bin and check whether all the binaries and python scripts are present or not
+ * set the path to bin in your .bashrc and source it to use.
      
 
 
