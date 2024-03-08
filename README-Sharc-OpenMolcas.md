@@ -32,7 +32,7 @@ export MOLCAS=/path/to/installation/
 source ~/.bashrc
  ```
 
-## Solution for Sharc 3.0.1 instllation in paramshivay iit bhu
+## Solution for Sharc 3.x.x instllation in paramshivay iit bhu
 
  ``` Open the terminal and type in the commands
 module load ohpc
