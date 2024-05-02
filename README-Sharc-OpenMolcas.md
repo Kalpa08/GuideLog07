@@ -14,6 +14,7 @@ spack load intel-oneapi-mkl@2021.3.0
 module load gcc/10.2.0
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/$USER/slurm-library:/usr/lib64
 export FC=ifort
+module load cmake_3.14.1
 
 git clone https://gitlab.com/Molcas/OpenMolcas.git 
 cd OpenMolcas 
