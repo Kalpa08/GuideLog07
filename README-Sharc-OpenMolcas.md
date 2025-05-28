@@ -1,7 +1,7 @@
 # GuideLog07
 This is a maintained log for solving common errors while installing & running the softwares.
 
-## Solution for OpenMolcas instllation in paramshivay iit bhu
+## Installing OpenMolcas in paramshivay iit bhu
 
  ``` Open the terminal and type in the commands
 module load ohpc
@@ -33,7 +33,7 @@ export MOLCAS=/path/to/installation/
 source ~/.bashrc
  ```
 
-## Solution for Sharc 3.x.x instllation in paramshivay iit bhu
+## Installing Sharc 3.x.x in paramshivay iit bhu
 
  ``` Open the terminal and type in the commands
 module load ohpc
