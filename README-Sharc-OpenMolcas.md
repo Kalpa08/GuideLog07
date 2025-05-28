@@ -69,7 +69,12 @@ export FC=ifort
  * go to bin and check whether all the binaries and python scripts are present or not
  * set the path to bin in your .bashrc and source it to use.
      
+## Installing BAGEL on a Compute Server
+### Load Intel MPI and Compilers
+Before starting, load the Intel environment by sourcing the appropriate script: 
 
-
+```
+. /opt/compilers/intel/setvars.sh
+```
 
   
