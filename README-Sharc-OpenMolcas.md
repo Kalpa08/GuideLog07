@@ -187,17 +187,22 @@ make
 ```
 ### ✅ Installation Complete — SHARC 4.0 is now ready for use in your compute server
 
-## Machine learning interfaces  
+## 🤖 Machine Learning Interfaces for SHARC 4.0 
 
-#### To use the SPaiNN interface, clone the repository and install it:
+SHARC 4.0 supports two machine learning-based interfaces — SPaiNN and SchNarc — for nonadiabatic dynamics using neural network potentials. These two interfaces are mutually exclusive because they depend on incompatible versions of the schnetpack library.
+#### Option 1: Installing the SPaiNN Interface
 
+Activate the sharc4.0 environment and install the SPaiNN repository
 ```
 conda activate sharc4.0
 
 git clone https://github.com/CompPhotoChem/SPaiNN.git
 cd SPaiNN && pip install .
 ```
-#### To use the SchNarc interface, install schnetpack 1, clone the repository, and install it:
+#### Installing the SchNarc Interface
+
+To use the SchNarc interface, install schnetpack 1, clone the repository, and install it:
+
 ```
 pip install schnetpack==1.0.1
 git clone https://github.com/schnarc/SchNarc.git
@@ -205,3 +210,5 @@ cd SchNarc && pip install .
 ```
 
 #### Note that the SPaiNN and SchNarc interfaces are mutually exclusive, since they require different versions of SchNetPack!
+#### ⚠️ Important:
+You cannot use SPaiNN and SchNarc simultaneously in the same environment due to conflicting schnetpack versions. Choose the one that fits your workflow and install accordingly.
