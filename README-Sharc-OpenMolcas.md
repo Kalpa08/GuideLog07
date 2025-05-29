@@ -187,4 +187,21 @@ make
 ```
 ### ✅ Installation Complete — SHARC 4.0 is now ready for use in your compute server
 
+## Machine learning interfaces  
 
+#### To use the SPaiNN interface, clone the repository and install it:
+
+```
+conda activate sharc4.0
+
+git clone https://github.com/CompPhotoChem/SPaiNN.git
+cd SPaiNN && pip install .
+```
+#### To use the SchNarc interface, install schnetpack 1, clone the repository, and install it:
+```
+pip install schnetpack==1.0.1
+git clone https://github.com/schnarc/SchNarc.git
+cd SchNarc && pip install .
+```
+
+#### Note that the SPaiNN and SchNarc interfaces are mutually exclusive, since they require different versions of SchNetPack!
