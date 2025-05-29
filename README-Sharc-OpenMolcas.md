@@ -187,7 +187,7 @@ make
 ```
 ### ✅ Installation Complete — SHARC 4.0 is now ready for use in your compute server
 
-## 🤖 Machine Learning Interfaces for SHARC 4.0 
+## 🤖 Machine Learning Interfaces for SHARC 4.0 (28/05/2025)
 
 SHARC 4.0 supports two machine learning-based interfaces — SPaiNN and SchNarc — for nonadiabatic dynamics using neural network potentials. These two interfaces are mutually exclusive because they depend on incompatible versions of the schnetpack library.
 #### Option 1: Installing the SPaiNN Interface
