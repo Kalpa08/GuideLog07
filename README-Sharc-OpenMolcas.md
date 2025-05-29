@@ -128,5 +128,63 @@ cd obj
 make -j4
 make install
 ```
+## 🧪 SHARC 4.0 Installation Guide (Compute Server)
+
+### 1. Load Intel Compilers and Set Environment Variables
+```
+# Load Intel compiler environment
+source /opt/compilers/intel/setvars.sh
+
+# Set MPI compiler variables
+export CC=mpicc
+export CXX=mpicxx
+export FC=mpiifort
+export I_MPI_FABRICS=ofi
+export FI_PROVIDER=shm
+export I_MPI_PIN=0
+export I_MPI_DEBUG=0
+
+```
+### 2. Create and Set Up the Conda Environment
+```
+# Create a conda environment with required packages
+conda create -n sharc4.0 -c conda-forge python=3.12 numpy scipy h5py matplotlib \
+pyparsing netcdf4 gfortran_linux-64 pyscf openmm numba sympy pyyaml pytorch pytest ase \
+opt_einsum threadpoolctl
+
+# Activate the environment
+conda activate sharc4.0
+
+# Install additional dependencies
+conda install -n sharc4.0 libzip openssl
+
+```
+### 3. Download and Build SHARC 4.0
+
+```
+# Download the SHARC 4.0 source code
+wget https://github.com/sharc-md/sharc4/archive/refs/tags/v4.0.tar.gz
+
+# Extract the archive
+tar -xvf v4.0.tar.gz
+cd sharc4-4.0
+
+```
+### 4. Compile pysharc and Fortran Sources
+```
+# Install pysharc Python bindings
+cd pysharc
+make install
+
+# Compile core SHARC source code
+cd ../source
+make install
+
+# Compile the wfoverlap module
+cd ../wfoverlap/source
+make
+
+```
+### ✅ Installation Complete — SHARC 4.0 is now ready for use in your compute server
 
 
