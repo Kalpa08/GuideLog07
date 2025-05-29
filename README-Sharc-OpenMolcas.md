@@ -69,7 +69,7 @@ export FC=ifort
  * go to bin and check whether all the binaries and python scripts are present or not
  * set the path to bin in your .bashrc and source it to use.
      
-## Installing BAGEL on a Compute Server
+## Installing BAGEL on a Compute Server (28/05/2025)
 ### 1. Load Intel MPI and Compilers
 Before starting, load the Intel environment by sourcing the appropriate script: 
 
@@ -128,7 +128,7 @@ cd obj
 make -j4
 make install
 ```
-## 🧪 SHARC 4.0 Installation Guide (Compute Server)
+## 🧪 SHARC 4.0 Installation Guide (Compute Server) (28/05/2025)
 
 ### 1. Load Intel Compilers and Set Environment Variables
 ```
