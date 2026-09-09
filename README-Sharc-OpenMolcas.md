@@ -1316,3 +1316,1123 @@ ldd sharc/sharc*.so | grep "not found"
 #### Note that the SPaiNN and SchNarc interfaces are mutually exclusive, since they require different versions of SchNetPack!
 #### ⚠️ Important:
 You cannot use SPaiNN and SchNarc simultaneously in the same environment due to conflicting schnetpack versions. Choose the one that fits your workflow and install accordingly.
+
+
+
+# OpenMolcas 2026 MPI Installation on Param Rudra
+
+This document describes the installation of **OpenMolcas 2026 with MPI support** on the **Param Rudra supercomputer**.
+
+The installation uses:
+
+- Intel oneAPI compilers
+- Intel MPI
+- Intel MKL
+- ScaLAPACK
+- Global Arrays (GA)
+- Python 3.12
+- CMake
+- MPI-enabled OpenMolcas
+
+The procedure below records the configuration used for a successful installation.
+
+---
+
+## 1. Installation Overview
+
+### Software
+
+| Component | Version / Configuration |
+|---|---|
+| OpenMolcas | `v26.06-1186-g641cfea24` |
+| Intel compiler | oneAPI 2024 |
+| Intel MPI | `2021.11` |
+| Intel MKL | `2024.0` |
+| Global Arrays | Built-in / bundled |
+| Python | `3.12` |
+| C compiler | `mpiicx` |
+| Fortran compiler | `mpiifx` |
+| MPI | Intel MPI |
+| Linear algebra | Intel MKL |
+| HDF5 | Disabled |
+
+---
+
+## 2. Directory Structure
+
+The following directory structure is used:
+
+```text
+/home/kalpa.bhu/SOFTWARES/OpenMolcas/
+└── OpenMolcas_2026/
+    ├── build_mpi/
+    ├── OM_install_mpi/
+    └── source files
+```
+
+### Source directory
+
+```bash
+/home/kalpa.bhu/SOFTWARES/OpenMolcas/OpenMolcas_2026
+```
+
+### Build directory
+
+```bash
+/home/kalpa.bhu/SOFTWARES/OpenMolcas/OpenMolcas_2026/build_mpi
+```
+
+### Installation directory
+
+```bash
+/home/kalpa.bhu/SOFTWARES/OpenMolcas/OpenMolcas_2026/OM_install_mpi
+```
+
+---
+
+## 3. Load the Param Rudra Environment
+
+Start with a clean module environment:
+
+```bash
+module purge
+```
+
+Load the Intel oneAPI environment:
+
+```bash
+module load compiler/oneapi2024/compiler-rt/2024.0.2
+module load compiler/oneapi2024/ifort/2024.0.2
+module load compiler/oneapi2024/mpi/2021.11
+module load compiler/oneapi2024/tbb/2021.11
+module load compiler/oneapi2024/mkl/2024.0
+```
+
+---
+
+## 4. Verify Intel MPI
+
+Check the MPI executables:
+
+```bash
+which mpiexec
+which mpirun
+```
+
+Expected:
+
+```text
+/home/apps/Compiler/intel/openapi2024/mpi/2021.11/bin/mpiexec
+/home/apps/Compiler/intel/openapi2024/mpi/2021.11/bin/mpirun
+```
+
+Also check the MPI compiler wrappers:
+
+```bash
+which mpiicx
+which mpiifx
+```
+
+The MPI compiler wrappers used for this installation are:
+
+```text
+mpiicx  -> Intel LLVM C compiler
+mpiifx  -> Intel LLVM Fortran compiler
+```
+
+---
+
+## 5. Create the Python Environment
+
+OpenMolcas requires Python for the `pymolcas` driver.
+
+Create a dedicated Conda environment:
+
+```bash
+conda create -n openmolcas-26 python=3.12
+```
+
+Activate it:
+
+```bash
+conda activate openmolcas-26
+```
+
+Verify:
+
+```bash
+python --version
+which python
+```
+
+Expected:
+
+```text
+Python 3.12.x
+```
+
+### 5.1 Install `pyparsing`
+
+The generated `pymolcas` driver requires the Python package `pyparsing`.
+
+Install it using:
+
+```bash
+conda install -c conda-forge pyparsing
+```
+
+Verify:
+
+```bash
+python -c "import pyparsing; print(pyparsing.__version__)"
+```
+
+---
+
+## 6. Set the MPI Compilers
+
+For the OpenMolcas build, use the Intel MPI compiler wrappers:
+
+```bash
+export CC=mpiicx
+export FC=mpiifx
+```
+
+Verify:
+
+```bash
+echo $CC
+echo $FC
+```
+
+Expected:
+
+```text
+mpiicx
+mpiifx
+```
+
+### Why `mpiicx` and `mpiifx`?
+
+The Intel MPI installation provides several compiler wrappers.
+
+The older `mpiicc` wrapper points to the deprecated Intel `icc` compiler. On Param Rudra, `icc` is not available.
+
+Therefore:
+
+```text
+mpiicc  -> not suitable
+mpiicx  -> use this
+```
+
+and for Fortran:
+
+```text
+mpiifx  -> use this
+```
+
+---
+
+## 7. Configure OpenMolcas with CMake
+
+Go to the build directory:
+
+```bash
+cd /home/kalpa.bhu/SOFTWARES/OpenMolcas/OpenMolcas_2026/build_mpi
+```
+
+Set the MPI compilers:
+
+```bash
+export CC=mpiicx
+export FC=mpiifx
+```
+
+Run CMake:
+
+```bash
+cmake \
+  -DMPI=ON \
+  -DGA=ON \
+  -DGA_BUILD=ON \
+  -DGCCROOT=/usr \
+  -DLINALG=MKL \
+  -DHDF5=OFF \
+  -DCMAKE_INSTALL_PREFIX=/home/kalpa.bhu/SOFTWARES/OpenMolcas/OpenMolcas_2026/OM_install_mpi \
+  ..
+```
+
+---
+
+## 8. Explanation of CMake Options
+
+The important CMake options are:
+
+| Option | Description |
+| --- | --- |
+| `-DMPI=ON` | Enables MPI parallelization |
+| `-DGA=ON` | Enables Global Arrays |
+| `-DGA_BUILD=ON` | Builds the bundled Global Arrays library |
+| `-DGCCROOT=/usr` | Specifies the system GCC installation |
+| `-DLINALG=MKL` | Uses Intel MKL for linear algebra |
+| `-DHDF5=OFF` | Disables HDF5 support |
+| `-DCMAKE_INSTALL_PREFIX=...` | Defines the final installation directory |
+
+The most important options for the MPI installation are:
+
+```bash
+-DMPI=ON
+-DGA=ON
+-DGA_BUILD=ON
+-DLINALG=MKL
+```
+
+---
+
+## 9. Why Global Arrays Must Be Enabled
+
+For this OpenMolcas configuration, MPI requires Global Arrays.
+
+Therefore:
+
+```bash
+-DMPI=ON
+-DGA=ON
+-DGA_BUILD=ON
+```
+
+are used together.
+
+The bundled Global Arrays library is compiled as part of the OpenMolcas build.
+
+The resulting libraries include:
+
+```text
+libga.a
+libarmci.a
+```
+
+---
+
+## 10. Global Arrays GCCROOT Issue
+
+During the first build, the Global Arrays configuration produced the following error:
+
+```text
+GCCROOT cmake option not set when using clang compilers.
+Please set a valid path to the GCC installation.
+```
+
+This occurs because OpenMolcas itself is compiled using Intel LLVM:
+
+```text
+mpiicx
+mpiifx
+```
+
+while the bundled Global Arrays build also requires access to a GCC installation.
+
+The system GCC installation on Param Rudra is located under:
+
+```text
+/usr
+```
+
+Therefore, add:
+
+```bash
+-DGCCROOT=/usr
+```
+
+to the CMake command.
+
+The final CMake command is therefore:
+
+```bash
+cmake \
+  -DMPI=ON \
+  -DGA=ON \
+  -DGA_BUILD=ON \
+  -DGCCROOT=/usr \
+  -DLINALG=MKL \
+  -DHDF5=OFF \
+  -DCMAKE_INSTALL_PREFIX=/home/kalpa.bhu/SOFTWARES/OpenMolcas/OpenMolcas_2026/OM_install_mpi \
+  ..
+```
+
+This allows:
+
+```text
+OpenMolcas
+    |
+    +-- Intel LLVM (mpiicx / mpiifx)
+    |
+    +-- Intel MPI
+    |
+    +-- Intel MKL
+    |
+    +-- Global Arrays
+           |
+           +-- System GCC (/usr)
+```
+
+---
+
+## 11. Check the CMake Configuration
+
+After running CMake, verify that the configuration reports MPI as enabled.
+
+Important configuration information should include:
+
+```text
+MPI: TRUE
+MPI_IMPLEMENTATION: impi
+MPI_C: .../mpiicx
+MPI_Fortran: .../mpiifx
+```
+
+The linear algebra configuration should show Intel MKL, including libraries such as:
+
+```text
+libmkl_scalapack_ilp64.so
+libmkl_intel_ilp64.so
+libmkl_core.so
+libmkl_sequential.so
+libmkl_blacs_intelmpi_ilp64.so
+```
+
+The Global Arrays configuration should also be present.
+
+---
+
+## 12. Compile OpenMolcas
+
+After successful CMake configuration, compile OpenMolcas:
+
+```bash
+make -j48
+```
+
+Alternatively:
+
+```bash
+make
+```
+
+if you do not want to explicitly specify the number of build processes.
+
+The build should compile major OpenMolcas programs including:
+
+```text
+scf.exe
+seward.exe
+rasscf.exe
+rassi.exe
+caspt2.exe
+slapaf.exe
+surfacehop.exe
+single_aniso.exe
+vibrot.exe
+parnell.exe
+```
+
+and other required components.
+
+---
+
+## 13. Python Error During the Build
+
+During the first build, compilation reached 100%, but the following message appeared:
+
+```text
+/usr/bin/env: 'python': No such file or directory
+```
+
+The reason was that the system provided:
+
+```bash
+python3
+```
+
+but did not provide a `python` executable.
+
+The solution was to create and activate the dedicated Conda environment:
+
+```bash
+conda create -n openmolcas-26 python=3.12
+conda activate openmolcas-26
+```
+
+Then run:
+
+```bash
+make
+```
+
+again.
+
+The subsequent build successfully generated the `pymolcas` target:
+
+```text
+[100%] Built target pymolcas_target
+```
+
+No complete rebuild from scratch was required.
+
+---
+
+## 14. Install OpenMolcas
+
+After successful compilation:
+
+```bash
+make install
+```
+
+The installation is placed in:
+
+```text
+/home/kalpa.bhu/SOFTWARES/OpenMolcas/OpenMolcas_2026/OM_install_mpi
+```
+
+Check the installation:
+
+```bash
+ls /home/kalpa.bhu/SOFTWARES/OpenMolcas/OpenMolcas_2026/OM_install_mpi
+```
+
+Expected directories/files include:
+
+```text
+CONTRIBUTORS.md
+LICENSE
+basis_library/
+bin/
+data/
+doc/
+lib/
+molcas.rte
+pymolcas
+sbin/
+```
+
+---
+
+## 15. Set the OpenMolcas Runtime Environment
+
+For normal use, load the required modules:
+
+```bash
+module purge
+
+module load compiler/oneapi2024/compiler-rt/2024.0.2
+module load compiler/oneapi2024/ifort/2024.0.2
+module load compiler/oneapi2024/mpi/2021.11
+module load compiler/oneapi2024/tbb/2021.11
+module load compiler/oneapi2024/mkl/2024.0
+```
+
+Activate the Python environment:
+
+```bash
+conda activate openmolcas-26
+```
+
+Set the OpenMolcas installation:
+
+```bash
+export MOLCAS=/home/kalpa.bhu/SOFTWARES/OpenMolcas/OpenMolcas_2026/OM_install_mpi
+```
+
+For an MPI calculation, define the number of processes:
+
+```bash
+export MOLCAS_NPROCS=2
+```
+
+For example, for a 48-process calculation:
+
+```bash
+export MOLCAS_NPROCS=48
+```
+
+The actual value should normally correspond to the resources requested from Slurm.
+
+---
+
+## 16. Verify `pymolcas`
+
+Run:
+
+```bash
+$MOLCAS/pymolcas -version
+```
+
+A successful installation should return something similar to:
+
+```text
+python driver version = py2.32
+(after the original perl EMIL interpreter of Valera Veryazov)
+```
+
+### Important
+
+The value:
+
+```text
+py2.32
+```
+
+is the **PyMolcas Python driver version**.
+
+It is not the OpenMolcas release version.
+
+---
+
+## 17. Verify the OpenMolcas Version
+
+Use:
+
+```bash
+$MOLCAS/sbin/version
+```
+
+The installed source version used for this build is:
+
+```text
+v26.06-1186-g641cfea24
+```
+
+This indicates:
+
+```text
+OpenMolcas 26.06
+Git revision: 641cfea24
+```
+
+---
+
+## 18. Verify MPI and MKL Libraries
+
+Check the RASSCF executable:
+
+```bash
+ldd $MOLCAS/bin/rasscf.exe | grep -E 'mpi|mkl|not found'
+```
+
+The output should contain Intel MPI libraries such as:
+
+```text
+libmpi_ilp64.so
+libmpifort.so.12
+libmpi.so.12
+```
+
+and Intel MKL libraries such as:
+
+```text
+libmkl_scalapack_ilp64.so.2
+libmkl_intel_ilp64.so.2
+libmkl_core.so.2
+libmkl_sequential.so.2
+libmkl_blacs_intelmpi_ilp64.so.2
+```
+
+---
+
+## 19. Check for Missing Libraries
+
+Run:
+
+```bash
+ldd $MOLCAS/bin/rasscf.exe | grep "not found"
+```
+
+A successful installation should produce:
+
+```text
+<no output>
+```
+
+No output means that all dynamically linked libraries required by `rasscf.exe` were successfully resolved.
+
+---
+
+## 20. Verify `seward.exe`
+
+The same check can be performed for SEWARD:
+
+```bash
+ldd $MOLCAS/bin/seward.exe | grep -E 'mpi|mkl|not found'
+```
+
+and:
+
+```bash
+ldd $MOLCAS/bin/seward.exe | grep "not found"
+```
+
+Again, the second command should produce no output.
+
+---
+
+## 21. Complete Environment Setup
+
+The following is the recommended environment for running OpenMolcas 2026 MPI on Param Rudra:
+
+```bash
+module purge
+
+module load compiler/oneapi2024/compiler-rt/2024.0.2
+module load compiler/oneapi2024/ifort/2024.0.2
+module load compiler/oneapi2024/mpi/2021.11
+module load compiler/oneapi2024/tbb/2021.11
+module load compiler/oneapi2024/mkl/2024.0
+
+conda activate openmolcas-26
+
+export MOLCAS=/home/kalpa.bhu/SOFTWARES/OpenMolcas/OpenMolcas_2026/OM_install_mpi
+
+export MOLCAS_NPROCS=2
+```
+
+For a different number of MPI processes, change:
+
+```bash
+export MOLCAS_NPROCS=2
+```
+
+to the required number.
+
+---
+
+## 22. Build-Time Environment vs Runtime Environment
+
+It is useful to distinguish between variables required for compiling OpenMolcas and variables required for running it.
+
+### Build-time
+
+These are required when configuring/building OpenMolcas:
+
+```bash
+export CC=mpiicx
+export FC=mpiifx
+```
+
+and:
+
+```bash
+-DMPI=ON
+-DGA=ON
+-DGA_BUILD=ON
+-DGCCROOT=/usr
+-DLINALG=MKL
+-DHDF5=OFF
+```
+
+### Runtime
+
+For an already-installed OpenMolcas, the important settings are:
+
+```bash
+module load ...
+conda activate openmolcas-26
+export MOLCAS=...
+export MOLCAS_NPROCS=...
+```
+
+`CC` and `FC` do not need to be exported every time an already-installed OpenMolcas executable is run.
+
+---
+
+## 23. Recommended Verification Sequence
+
+After installation, use the following sequence:
+
+### Step 1: Check Python
+
+```bash
+which python
+python --version
+```
+
+### Step 2: Check MPI
+
+```bash
+which mpiexec
+which mpirun
+```
+
+### Step 3: Check OpenMolcas
+
+```bash
+$MOLCAS/pymolcas -version
+```
+
+### Step 4: Check OpenMolcas source/build version
+
+```bash
+$MOLCAS/sbin/version
+```
+
+### Step 5: Check RASSCF dependencies
+
+```bash
+ldd $MOLCAS/bin/rasscf.exe | grep -E 'mpi|mkl|not found'
+```
+
+### Step 6: Check for unresolved libraries
+
+```bash
+ldd $MOLCAS/bin/rasscf.exe | grep "not found"
+```
+
+The last command should return nothing.
+
+---
+
+## 24. Final Installation Status
+
+The installation is considered successfully built and installed when all of the following are satisfied:
+
+```text
+[✓] Intel oneAPI environment loaded
+[✓] Intel MPI available
+[✓] mpiicx available
+[✓] mpiifx available
+[✓] Intel MKL available
+[✓] Python 3.12 environment created
+[✓] pyparsing installed
+[✓] CMake configuration successful
+[✓] MPI enabled
+[✓] Global Arrays enabled
+[✓] Global Arrays compiled
+[✓] OpenMolcas compiled
+[✓] pymolcas generated
+[✓] OpenMolcas installed
+[✓] pymolcas -version works
+[✓] OpenMolcas version verified
+[✓] RASSCF MPI libraries resolved
+[✓] RASSCF MKL libraries resolved
+[✓] No missing shared libraries
+```
+
+---
+
+## 25. Troubleshooting
+
+### Problem 1: `icc: command not found`
+
+**Error**
+
+```text
+icc: command not found
+```
+
+**Cause**
+
+The Intel MPI `mpiicc` wrapper attempts to use the deprecated Intel `icc` compiler.
+
+**Solution**
+
+Use:
+
+```bash
+export CC=mpiicx
+export FC=mpiifx
+```
+
+instead of:
+
+```bash
+export CC=mpiicc
+```
+
+---
+
+### Problem 2: Global Arrays asks for `GCCROOT`
+
+**Error**
+
+```text
+GCCROOT cmake option not set when using clang compilers.
+Please set a valid path to the GCC installation.
+```
+
+**Solution**
+
+Specify the system GCC installation:
+
+```bash
+-DGCCROOT=/usr
+```
+
+For example:
+
+```bash
+cmake \
+  -DMPI=ON \
+  -DGA=ON \
+  -DGA_BUILD=ON \
+  -DGCCROOT=/usr \
+  -DLINALG=MKL \
+  -DHDF5=OFF \
+  -DCMAKE_INSTALL_PREFIX=/home/kalpa.bhu/SOFTWARES/OpenMolcas/OpenMolcas_2026/OM_install_mpi \
+  ..
+```
+
+---
+
+### Problem 3: `python: No such file or directory`
+
+**Error**
+
+```text
+/usr/bin/env: 'python': No such file or directory
+```
+
+**Cause**
+
+The system provides `python3`, but the build requires the `python` command.
+
+**Solution**
+
+Activate the dedicated Conda environment:
+
+```bash
+conda activate openmolcas-26
+```
+
+Verify:
+
+```bash
+which python
+python --version
+```
+
+Then run:
+
+```bash
+make
+```
+
+again.
+
+---
+
+### Problem 4: `ModuleNotFoundError: No module named 'pyparsing'`
+
+**Error**
+
+```text
+ModuleNotFoundError: No module named 'pyparsing'
+```
+
+**Solution**
+
+Install `pyparsing` in the OpenMolcas Conda environment:
+
+```bash
+conda activate openmolcas-26
+conda install -c conda-forge pyparsing
+```
+
+Verify:
+
+```bash
+python -c "import pyparsing; print(pyparsing.__version__)"
+```
+
+Then:
+
+```bash
+$MOLCAS/pymolcas -version
+```
+
+---
+
+### Problem 5: `ldd` shows `not found`
+
+Run:
+
+```bash
+ldd $MOLCAS/bin/rasscf.exe | grep "not found"
+```
+
+If libraries are missing, first make sure the Param Rudra Intel environment is loaded:
+
+```bash
+module purge
+
+module load compiler/oneapi2024/compiler-rt/2024.0.2
+module load compiler/oneapi2024/ifort/2024.0.2
+module load compiler/oneapi2024/mpi/2021.11
+module load compiler/oneapi2024/tbb/2021.11
+module load compiler/oneapi2024/mkl/2024.0
+```
+
+Then repeat the `ldd` check.
+
+---
+
+## 26. Example: Build Configuration in One Block
+
+For future reference, the complete build configuration is:
+
+```bash
+module purge
+
+module load compiler/oneapi2024/compiler-rt/2024.0.2
+module load compiler/oneapi2024/ifort/2024.0.2
+module load compiler/oneapi2024/mpi/2021.11
+module load compiler/oneapi2024/tbb/2021.11
+module load compiler/oneapi2024/mkl/2024.0
+
+conda activate openmolcas-26
+
+export CC=mpiicx
+export FC=mpiifx
+
+cd /home/kalpa.bhu/SOFTWARES/OpenMolcas/OpenMolcas_2026/build_mpi
+
+cmake \
+  -DMPI=ON \
+  -DGA=ON \
+  -DGA_BUILD=ON \
+  -DGCCROOT=/usr \
+  -DLINALG=MKL \
+  -DHDF5=OFF \
+  -DCMAKE_INSTALL_PREFIX=/home/kalpa.bhu/SOFTWARES/OpenMolcas/OpenMolcas_2026/OM_install_mpi \
+  ..
+
+make -j48
+make install
+```
+
+---
+
+## 27. Example: Runtime Configuration in One Block
+
+After installation:
+
+```bash
+module purge
+
+module load compiler/oneapi2024/compiler-rt/2024.0.2
+module load compiler/oneapi2024/ifort/2024.0.2
+module load compiler/oneapi2024/mpi/2021.11
+module load compiler/oneapi2024/tbb/2021.11
+module load compiler/oneapi2024/mkl/2024.0
+
+conda activate openmolcas-26
+
+export MOLCAS=/home/kalpa.bhu/SOFTWARES/OpenMolcas/OpenMolcas_2026/OM_install_mpi
+
+export MOLCAS_NPROCS=2
+```
+
+Verify:
+
+```bash
+$MOLCAS/pymolcas -version
+$MOLCAS/sbin/version
+ldd $MOLCAS/bin/rasscf.exe | grep "not found"
+```
+
+---
+
+## 28. Next Step: MPI Runtime Test
+
+Successful compilation and library checks do not by themselves prove that an MPI calculation runs correctly.
+
+The final validation should therefore be performed on a **compute node** using a small test calculation.
+
+For example:
+
+```bash
+export MOLCAS_NPROCS=2
+```
+
+Then run a small OpenMolcas calculation and verify that:
+
+1. `pymolcas` starts correctly.
+2. SEWARD runs successfully.
+3. RASSCF runs successfully.
+4. Intel MPI launches multiple processes.
+5. Global Arrays initializes correctly.
+6. MKL/ScaLAPACK libraries are used successfully.
+7. The calculation terminates normally.
+
+Only after this runtime test should the installation be used for production MPI calculations.
+
+---
+
+## 29. Summary
+
+The OpenMolcas 2026 MPI installation on Param Rudra uses the following architecture:
+
+```text
+                    OpenMolcas 2026
+                           |
+                    +------+------+
+                    |             |
+                  MPI           MKL
+                    |             |
+             Intel MPI       ScaLAPACK
+                    |
+             Global Arrays
+                    |
+              MPI Processes
+```
+
+Compiler configuration:
+
+```text
+C       : mpiicx
+Fortran : mpiifx
+```
+
+Linear algebra:
+
+```text
+Intel MKL
+```
+
+MPI:
+
+```text
+Intel MPI 2021.11
+```
+
+Global Arrays:
+
+```text
+Bundled OpenMolcas Global Arrays
+```
+
+GCC required by Global Arrays:
+
+```text
+/usr
+```
+
+Python:
+
+```text
+Conda environment: openmolcas-26
+Python: 3.12
+```
+
+Installation:
+
+```text
+/home/kalpa.bhu/SOFTWARES/OpenMolcas/OpenMolcas_2026/OM_install_mpi
+```
+
+OpenMolcas version:
+
+```text
+v26.06-1186-g641cfea24
+```
+
+The installation has been successfully compiled, installed, and verified at the executable/library level. The remaining validation is an actual MPI runtime calculation on a compute node.
