@@ -2436,3 +2436,566 @@ v26.06-1186-g641cfea24
 ```
 
 The installation has been successfully compiled, installed, and verified at the executable/library level. The remaining validation is an actual MPI runtime calculation on a compute node.
+
+
+
+
+# SHARC 4.1 + WFoverlap Installation on Param Rudra
+
+> A complete, self-sufficient installation record: Conda environment creation, SHARC core, PySHARC, and WFoverlap — including every pitfall hit along the way.
+
+---
+
+## Overview
+
+| | |
+|---|---|
+| **Install location** | `/home/kalpa.bhu/SOFTWARES/SHARC/sharc4` |
+| **Conda environment** | `sharc4.1` (Python 3.12) |
+| **Compiler** | Intel oneAPI `ifx` 2024.0.2 |
+| **Math library** | Intel MKL 2024.0 |
+| **MPI** | Intel MPI 2021.11 |
+| **Git revision** | `v4.1-4-gec7ae737` (SHARC 4.1) |
+| **PySHARC** | Built and verified |
+| **WFoverlap** | `wfoverlap_ascii.x` built (ASCII variant, no COLUMBUS deps) |
+| **Status** | ✅ SHARC + PySHARC + WFoverlap all built. `make test` for WFoverlap still pending |
+
+> ⚠️ The `sharc.x --version` banner reports `Version: 4.0 (April 1, 2025)` — this is a stale string in `source/definitions.F90`. Trust `git describe` instead (Step 2), which confirms the source is actually **SHARC 4.1**.
+
+---
+
+# Part A — SHARC 4.1
+
+## A.1 Create the Conda Environment
+
+Before doing anything else, create the dedicated `sharc4.1` environment:
+
+```bash
+conda create -n sharc4.1 -c conda-forge python=3.12 numpy scipy h5py matplotlib \
+pyparsing netcdf4 gfortran_linux-64 pyscf openmm numba sympy pyyaml pytorch pytest ase \
+opt_einsum threadpoolctl pip joblib
+```
+
+This pulls Python 3.12 and all the scientific-stack dependencies SHARC/PySHARC needs (numerics, I/O, electronic-structure interfaces, ML/optimization utilities) from `conda-forge` in one shot.
+
+---
+
+## A.2 Load the Compiler & Library Environment
+
+Start from a clean module environment:
+
+```bash
+module purge
+
+module load compiler/oneapi2024/compiler-rt/2024.0.2
+module load compiler/oneapi2024/ifort/2024.0.2
+module load compiler/oneapi2024/mpi/2021.11
+module load compiler/oneapi2024/tbb/2021.11
+module load compiler/oneapi2024/mkl/2024.0
+```
+
+Activate the environment created in A.1:
+
+```bash
+conda activate sharc4.1
+```
+
+Conda can silently set compiler variables — make sure Intel's compiler wins:
+
+```bash
+unset CC
+unset FC
+```
+
+Confirm:
+
+```bash
+which ifx
+which ifort
+```
+
+SHARC 4.1 is built with `ifx`.
+
+---
+
+## A.3 Verify the Source Version
+
+```bash
+cd /home/kalpa.bhu/SOFTWARES/SHARC/sharc4
+git describe --tags --always
+```
+
+```text
+v4.1-4-gec7ae737
+```
+
+This Git tag is the authoritative version indicator — trust it over the executable's `--version` banner.
+
+---
+
+## A.4 Configure the SHARC Makefile
+
+```bash
+cd /home/kalpa.bhu/SOFTWARES/SHARC/sharc4/source
+vi Makefile
+```
+
+Key settings for the initial (non-Python) build:
+
+```make
+USE_PYSHARC := false
+USE_COMPILER := intel
+USE_LIBS := mkl
+COMP_STATIC := false
+ANACONDA := ${CONDA_PREFIX}
+```
+
+---
+
+## A.5 Compile SHARC (Normal Build)
+
+```bash
+make install
+```
+
+This builds successfully with `ifx` + MKL. Warnings like:
+
+```text
+warning #6379
+```
+
+(structure alignment) are non-fatal.
+
+**Verify:**
+
+```bash
+cd ../bin
+./sharc.x --version
+```
+
+---
+
+## A.6 Enable PySHARC
+
+Back in `source/Makefile`, flip:
+
+```diff
+- USE_PYSHARC := false
++ USE_PYSHARC := true
+```
+
+Rebuild the SHARC library:
+
+```bash
+make install
+```
+
+---
+
+## A.7 Build PySHARC
+
+```bash
+cd /home/kalpa.bhu/SOFTWARES/SHARC/sharc4/pysharc
+```
+
+> 💡 **Avoid Python environment contamination** — clear any inherited path before building.
+
+```bash
+unset PYTHONPATH
+python sharc_setup build_ext --build-lib .
+```
+
+**Produces:**
+
+```text
+sharc/sharc.cpython-312-x86_64-linux-gnu.so
+```
+
+and installs into:
+
+```text
+/home/kalpa.bhu/SOFTWARES/SHARC/sharc4/lib/
+├── libsharc.so
+└── libsharcnc.so
+```
+
+---
+
+## A.8 Set the Runtime Environment
+
+The bundled environment script:
+
+```text
+/home/kalpa.bhu/SOFTWARES/SHARC/sharc4/bin/sharcvars.sh
+```
+
+Effective environment used in practice:
+
+```bash
+unset PYTHONPATH
+
+export SHARC=/home/kalpa.bhu/SOFTWARES/SHARC/sharc4/bin
+export SHARCLIB=/home/kalpa.bhu/SOFTWARES/SHARC/sharc4/lib
+export PYSHARC=/home/kalpa.bhu/SOFTWARES/SHARC/sharc4/pysharc
+
+export PYTHONPATH=$PYSHARC:$SHARCLIB
+export LD_LIBRARY_PATH=$SHARCLIB:$LD_LIBRARY_PATH
+```
+
+Or, using the shipped script for the standard variables:
+
+```bash
+source /home/kalpa.bhu/SOFTWARES/SHARC/sharc4/bin/sharcvars.sh
+export PYTHONPATH=$PYSHARC:$SHARCLIB
+```
+
+---
+
+## A.9 Verify PySHARC
+
+**Python interpreter:**
+
+```bash
+which python
+python --version
+```
+
+Expected:
+
+```text
+/home/kalpa.bhu/SOFTWARES/miniconda3/envs/sharc4.1/bin/python
+Python 3.12.x
+```
+
+**PySHARC module location:**
+
+```bash
+python -c "import sharc; print(sharc.__file__)"
+```
+
+```text
+/home/kalpa.bhu/SOFTWARES/SHARC/sharc4/pysharc/sharc/__init__.py
+```
+
+**Compiled extension:**
+
+```bash
+python -c "import sharc.sharc; print('PySHARC 4.1: OK')"
+```
+
+```text
+PySHARC 4.1: OK
+```
+
+---
+
+## A.10 Fix Shared-Library Errors
+
+The extension initially failed with:
+
+```text
+ImportError: libsharc.so: cannot open shared object file
+```
+
+**Fix** — make sure the SHARC lib directory is on the loader path:
+
+```bash
+export LD_LIBRARY_PATH=/home/kalpa.bhu/SOFTWARES/SHARC/sharc4/lib:$LD_LIBRARY_PATH
+```
+
+**Verify no missing dependencies remain:**
+
+```bash
+ldd /home/kalpa.bhu/SOFTWARES/SHARC/sharc4/pysharc/sharc/sharc.cpython-312-x86_64-linux-gnu.so | grep "not found"
+```
+
+Expected: **no output**.
+
+---
+
+## A.11 ⚠️ Critical Pitfall: Global `geodesic` Env in `.bashrc`
+
+A `.bashrc` had globally injected the `geodesic` Conda environment (Python 3.9):
+
+```bash
+export PATH=/home/kalpa.bhu/SOFTWARES/miniconda3/envs/geodesic/bin:$PATH
+export PYTHONPATH=/home/kalpa.bhu/SOFTWARES/miniconda3/envs/geodesic/lib/python3.9/site-packages:$PYTHONPATH
+```
+
+**Effect:** even with `CONDA_PREFIX` correctly pointing at `sharc4.1`, SHARC silently ran under Python 3.9, producing:
+
+```text
+SyntaxError: invalid syntax
+```
+
+at a `match` statement — `match` requires Python ≥ 3.10.
+
+**Fix:** remove those two lines from global `.bashrc` entirely. Only activate `geodesic` on demand:
+
+```bash
+conda activate geodesic
+```
+
+This keeps SHARC's Python environment isolated from unrelated projects.
+
+---
+
+# Part B — WFoverlap
+
+WFoverlap ships inside the SHARC 4.1 tree and shares the same conda environment and Intel toolchain set up in Part A. We build **`wfoverlap_ascii.x`** rather than the full `wfoverlap.x`, since the latter needs the COLUMBUS libraries.
+
+## B.1 Location
+
+```bash
+cd /home/kalpa.bhu/SOFTWARES/SHARC/sharc4/wfoverlap/source
+```
+
+(This assumes the environment from **A.2** — `module load ...` + `conda activate sharc4.1` — is already active.)
+
+---
+
+## B.2 ⚠️ Known Issue: Broken `MKLROOT`
+
+The cluster's module system exports a malformed `MKLROOT`:
+
+```bash
+echo "$MKLROOT"
+```
+
+```text
+/home/apps/Compiler/intel/openapi2024/``/mkl/2024.0
+```
+
+Notice the stray literal backticks (`` `` ``) embedded in the path. This breaks any shell command that tries to pass `$MKLROOT` through to `ifx`.
+
+**Verify the actual libraries still exist**, ignoring the broken variable:
+
+```bash
+find "$MKLROOT" -name "libmkl_intel_ilp64.a" -o \
+                -name "libmkl_intel_thread.a" -o \
+                -name "libmkl_core.a"
+```
+
+The libraries were confirmed present under `$MKLROOT/lib/`.
+
+---
+
+## B.3 Fix: Create a Clean MKL Symlink
+
+Rather than patching the module system, create a clean symlink that resolves to the real MKL install:
+
+```bash
+ln -sfn "$MKLROOT" "$HOME/SOFTWARES/mkl-2024.0"
+```
+
+This produces:
+
+```text
+/home/kalpa.bhu/SOFTWARES/mkl-2024.0  →  (real MKL install)
+```
+
+Then override `MKLROOT` in the current shell to point at the clean path:
+
+```bash
+export MKLROOT="$HOME/SOFTWARES/mkl-2024.0"
+```
+
+> 💡 **Why this works:** every subsequent `$MKLROOT` reference (including inside the Makefile) now resolves through a symlink with no backticks, so it survives shell expansion cleanly.
+
+---
+
+## B.4 Modify the WFoverlap Makefile
+
+**Before** (breaks on the malformed path):
+
+```make
+LALIB = -Wl,--start-group ${MKLROOT}/lib/libmkl_intel_ilp64.a ...
+```
+
+**After** (uses the clean `MKLROOT` variable consistently):
+
+```make
+LALIB  = -Wl,--start-group $(MKLROOT)/lib/libmkl_intel_ilp64.a $(MKLROOT)/lib/libmkl_intel_thread.a $(MKLROOT)/lib/libmkl_core.a -Wl,--end-group -liomp5 -lpthread -lm -ldl
+```
+
+The rest of the compiler settings are unchanged:
+
+```make
+OMP = -qopenmp
+FC  = ifx
+OPT = -O3 -ipo
+
+FCFLAGS = $(OPT) $(OMP) $(PROFILE) $(DEBUG) -fpp -i8 -DEXTBLAS -I"${MKLROOT}/include" -z muldefs
+```
+
+> 📌 This is the **one persistent change** made to the repo — everything else in this section is environment setup that must be repeated per session.
+
+---
+
+## B.5 Dry-Run the Build (Recommended)
+
+Before compiling for real, check what the linker will actually use:
+
+```bash
+make -n wfoverlap_ascii.x | tail -3
+```
+
+Expected output — confirms the linker is pointing at the clean MKL path:
+
+```text
+/home/kalpa.bhu/SOFTWARES/mkl-2024.0/lib/libmkl_intel_ilp64.a
+/home/kalpa.bhu/SOFTWARES/mkl-2024.0/lib/libmkl_intel_thread.a
+/home/kalpa.bhu/SOFTWARES/mkl-2024.0/lib/libmkl_core.a
+```
+
+---
+
+## B.6 Build
+
+Clean any stale objects/modules, then compile:
+
+```bash
+make clean
+make wfoverlap_ascii.x
+```
+
+This compiles the Fortran sources with:
+
+```text
+ifx  -O3  -ipo  -qopenmp  -fpp  -i8  -DEXTBLAS
+```
+
+linked against MKL.
+
+**Compiler output:** only a single remark, not an error:
+
+```text
+remark #8291   (from read_turbomole.f90)
+```
+
+---
+
+## B.7 Result
+
+The build automatically installs the binary and a compatibility symlink:
+
+```bash
+cp wfoverlap_ascii.x ../../bin
+ln -fs wfoverlap_ascii.x ../../bin/wfoverlap.x
+```
+
+| File | Description |
+|---|---|
+| `wfoverlap/bin/wfoverlap_ascii.x` | The compiled ASCII executable |
+| `wfoverlap/bin/wfoverlap.x` | Symlink → `wfoverlap_ascii.x` |
+
+---
+
+# Quick Reference — Full Sequence from Scratch
+
+```bash
+# --- 0. Create the conda environment (one-time) ---
+conda create -n sharc4.1 -c conda-forge python=3.12 numpy scipy h5py matplotlib \
+pyparsing netcdf4 gfortran_linux-64 pyscf openmm numba sympy pyyaml pytorch pytest ase \
+opt_einsum threadpoolctl pip joblib
+
+# --- 1. Load environment ---
+module purge
+module load compiler/oneapi2024/compiler-rt/2024.0.2
+module load compiler/oneapi2024/ifort/2024.0.2
+module load compiler/oneapi2024/mpi/2021.11
+module load compiler/oneapi2024/tbb/2021.11
+module load compiler/oneapi2024/mkl/2024.0
+
+conda activate sharc4.1
+unset CC FC PYTHONPATH
+
+# --- 2. Build SHARC (normal) ---
+cd /home/kalpa.bhu/SOFTWARES/SHARC/sharc4/source
+# edit Makefile: USE_PYSHARC := false, USE_COMPILER := intel, USE_LIBS := mkl, ANACONDA := ${CONDA_PREFIX}
+make install
+
+# --- 3. Build PySHARC ---
+# edit Makefile: USE_PYSHARC := true
+make install
+cd ../pysharc
+unset PYTHONPATH
+python sharc_setup build_ext --build-lib .
+
+# --- 4. Set runtime environment ---
+export SHARC=/home/kalpa.bhu/SOFTWARES/SHARC/sharc4/bin
+export SHARCLIB=/home/kalpa.bhu/SOFTWARES/SHARC/sharc4/lib
+export PYSHARC=/home/kalpa.bhu/SOFTWARES/SHARC/sharc4/pysharc
+export PYTHONPATH=$PYSHARC:$SHARCLIB
+export LD_LIBRARY_PATH=$SHARCLIB:$LD_LIBRARY_PATH
+
+# --- 5. Build WFoverlap ---
+cd /home/kalpa.bhu/SOFTWARES/SHARC/sharc4/wfoverlap/source
+ln -sfn "$MKLROOT" "$HOME/SOFTWARES/mkl-2024.0"
+export MKLROOT="$HOME/SOFTWARES/mkl-2024.0"
+# edit Makefile LALIB line to use $(MKLROOT) consistently (see B.4)
+make clean
+make wfoverlap_ascii.x
+```
+
+---
+
+# Final Installation Structure
+
+```text
+/home/kalpa.bhu/SOFTWARES/SHARC/sharc4/
+│
+├── bin/
+│   ├── sharc.x
+│   ├── sharcvars.sh
+│   └── ...
+│
+├── lib/
+│   ├── libsharc.so
+│   ├── libsharcnc.so
+│   └── ...
+│
+├── pysharc/
+│   └── sharc/
+│       ├── __init__.py
+│       └── sharc.cpython-312-x86_64-linux-gnu.so
+│
+├── source/
+└── wfoverlap/
+    ├── source/
+    └── bin/
+        ├── wfoverlap_ascii.x
+        └── wfoverlap.x  (symlink → wfoverlap_ascii.x)
+```
+
+**Conda environment:**
+
+```text
+/home/kalpa.bhu/SOFTWARES/miniconda3/envs/sharc4.1
+```
+
+---
+
+# Summary
+
+```text
+sharc4.1 (conda-forge env, Python 3.12)
+        │
+        ├── Intel ifx 2024.0.2
+        ├── Intel MKL 2024.0
+        ├── Intel MPI 2021.11
+        ├── SHARC 4.1 (source, git tag v4.1-4-gec7ae737)
+        │     └── PySHARC (sharc.cpython-312-x86_64-linux-gnu.so)
+        └── WFoverlap (wfoverlap_ascii.x)
+```
+
+**Critical rules to remember:**
+
+> 1. Never globally add the `geodesic` (Python 3.9) environment to `PATH` or `PYTHONPATH` — activate it only on demand (`conda activate geodesic`), or SHARC's Python ≥3.10 code (e.g. `match` statements) breaks silently.
+> 2. The cluster's `$MKLROOT` module variable contains stray backticks — always resolve it through the clean symlink at `$HOME/SOFTWARES/mkl-2024.0` before compiling WFoverlap.
+
+---
+
+## Outstanding Item
+
+- [ ] Run `make test` for WFoverlap to verify the build (not yet done)
